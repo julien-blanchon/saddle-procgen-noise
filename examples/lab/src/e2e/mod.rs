@@ -1,10 +1,10 @@
 use bevy::prelude::*;
+use saddle_procgen_saddle_procgen_noise::NoiseSystems;
 use saddle_saddle_bevy_e2e::{
     action::Action,
     actions::{assertions, inspect},
     scenario::Scenario,
 };
-use saddle_procgen_saddle_procgen_noise::NoiseSystems;
 
 use crate::{
     AsyncPreset, AsyncPreviewSprite, BeforeRegenerationSignature, LabDiagnostics, LabView,
@@ -16,7 +16,10 @@ pub struct NoiseLabE2EPlugin;
 impl Plugin for NoiseLabE2EPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(saddle_bevy_e2e::E2EPlugin);
-        app.configure_sets(Update, saddle_bevy_e2e::E2ESet.before(NoiseSystems::QueueJobs));
+        app.configure_sets(
+            Update,
+            saddle_bevy_e2e::E2ESet.before(NoiseSystems::QueueJobs),
+        );
         let args: Vec<String> = std::env::args().collect();
         let (scenario_name, handoff) = parse_e2e_args(&args);
         if let Some(name) = scenario_name {
@@ -128,9 +131,9 @@ fn noise_smoke() -> Scenario {
         .then(inspect::log_resource::<LabDiagnostics>(
             "noise_smoke_lab_diagnostics",
         ))
-        .then(inspect::log_resource::<saddle_procgen_noise::NoiseRuntimeDiagnostics>(
-            "noise_smoke_runtime_diagnostics",
-        ))
+        .then(inspect::log_resource::<
+            saddle_procgen_noise::NoiseRuntimeDiagnostics,
+        >("noise_smoke_runtime_diagnostics"))
         .then(Action::Screenshot("noise_smoke".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("noise_smoke"))
