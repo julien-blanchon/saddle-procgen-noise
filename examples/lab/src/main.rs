@@ -10,7 +10,7 @@ use bevy::{
 };
 #[cfg(feature = "dev")]
 use bevy_brp_extras::BrpExtrasPlugin;
-use saddle_procgen_saddle_procgen_noise::{
+use saddle_procgen_noise::{
     GradientRamp, GridRequest2, GridSpace2, NoiseGenerationCompleted, NoiseImageSettings,
     NoisePlugin, NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2, NoiseRecipe4,
     NoiseRegenerateRequested, NoiseRuntimeDiagnostics, NoiseSeed, NoiseSource, NoiseSystems,
@@ -18,6 +18,7 @@ use saddle_procgen_saddle_procgen_noise::{
     generate_grid_sample,
 };
 
+#[cfg(feature = "dev")]
 const DEFAULT_BRP_PORT: u16 = 15_702;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Reflect)]
@@ -167,10 +168,6 @@ fn lab_brp_port() -> u16 {
         .unwrap_or(DEFAULT_BRP_PORT)
 }
 
-#[cfg(not(feature = "dev"))]
-fn lab_brp_port() -> u16 {
-    DEFAULT_BRP_PORT
-}
 
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     commands.spawn((Name::new("Noise Lab Camera"), Camera2d));

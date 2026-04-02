@@ -1,7 +1,7 @@
 use saddle_procgen_noise_example_common as support;
 
 use bevy::prelude::*;
-use saddle_procgen_saddle_procgen_noise::{
+use saddle_procgen_noise::{
     FractalConfig, GradientRamp, GridRequest2, NoiseImageSettings, NoiseRecipe4, NoiseSeed,
     NoiseSource, SimplexConfig, TileConfig, Tiled2, sample_grid2,
 };

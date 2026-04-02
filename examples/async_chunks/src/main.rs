@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use saddle_procgen_saddle_procgen_noise::{
+use saddle_procgen_noise::{
     GradientRamp, GridRequest2, NoiseGenerationCompleted, NoiseImageSettings, NoisePlugin,
     NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2, NoiseRegenerateRequested,
     NoiseRuntimeDiagnostics, NoiseSeed, NoiseSystems, PerlinConfig,
