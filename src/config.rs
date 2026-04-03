@@ -28,6 +28,19 @@ impl Default for SimplexConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+pub struct ValueConfig {
+    pub seed: NoiseSeed,
+}
+
+impl Default for ValueConfig {
+    fn default() -> Self {
+        Self {
+            seed: NoiseSeed::new(0),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default)]
 pub enum WorleyDistanceMetric {
     #[default]
@@ -305,6 +318,7 @@ impl Default for GridSpace3 {
 pub enum NoiseRecipe4 {
     Perlin(PerlinConfig),
     Simplex(SimplexConfig),
+    Value(ValueConfig),
     Fbm {
         #[reflect(ignore)]
         source: Box<NoiseRecipe4>,
@@ -333,6 +347,7 @@ impl NoiseRecipe4 {
         match self {
             Self::Perlin(_) => "Perlin4D",
             Self::Simplex(_) => "Simplex4D",
+            Self::Value(_) => "Value4D",
             Self::Fbm { .. } => "Fbm4D",
             Self::Billow { .. } => "Billow4D",
             Self::Ridged { .. } => "Ridged4D",
@@ -345,6 +360,7 @@ impl NoiseRecipe4 {
         match self {
             Self::Perlin(config) => format!("Perlin4D(seed={})", config.seed.0),
             Self::Simplex(config) => format!("Simplex4D(seed={})", config.seed.0),
+            Self::Value(config) => format!("Value4D(seed={})", config.seed.0),
             Self::Fbm { source, config } => {
                 format!(
                     "Fbm4D(octaves={}, source={})",
@@ -380,6 +396,7 @@ impl Default for NoiseRecipe4 {
 pub enum NoiseRecipe2 {
     Perlin(PerlinConfig),
     Simplex(SimplexConfig),
+    Value(ValueConfig),
     Worley(WorleyConfig),
     Fbm {
         #[reflect(ignore)]
@@ -423,6 +440,7 @@ impl NoiseRecipe2 {
         match self {
             Self::Perlin(_) => "Perlin",
             Self::Simplex(_) => "Simplex",
+            Self::Value(_) => "Value",
             Self::Worley(_) => "Worley",
             Self::Fbm { .. } => "Fbm",
             Self::Billow { .. } => "Billow",
@@ -438,6 +456,7 @@ impl NoiseRecipe2 {
         match self {
             Self::Perlin(config) => format!("Perlin(seed={})", config.seed.0),
             Self::Simplex(config) => format!("Simplex(seed={})", config.seed.0),
+            Self::Value(config) => format!("Value(seed={})", config.seed.0),
             Self::Worley(config) => format!(
                 "Worley(seed={}, return={:?}, metric={:?})",
                 config.seed.0, config.return_type, config.distance

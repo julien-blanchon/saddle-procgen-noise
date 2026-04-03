@@ -1,14 +1,14 @@
 use bevy::prelude::*;
-use saddle_procgen_noise::NoiseSystems;
 use saddle_bevy_e2e::{
     action::Action,
     actions::{assertions, inspect},
     scenario::Scenario,
 };
+use saddle_procgen_noise::NoiseSystems;
 
 use crate::{
-    AsyncPreset, AsyncPreviewSprite, BeforeRegenerationSignature, LabDiagnostics, LabView,
-    request_regeneration, set_preset, set_view,
+    request_regeneration, set_preset, set_view, AsyncPreset, AsyncPreviewSprite,
+    BeforeRegenerationSignature, LabDiagnostics, LabView,
 };
 
 pub struct NoiseLabE2EPlugin;
@@ -147,9 +147,9 @@ fn noise_presets_compare() -> Scenario {
         .then(wait_for_view(LabView::Compare))
         .then(Action::WaitFrames(12))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
-            "compare grid has six unique panels",
+            "compare grid has seven unique panels",
             |diagnostics| {
-                diagnostics.compare_panel_count == 6 && diagnostics.compare_unique_signatures == 6
+                diagnostics.compare_panel_count == 7 && diagnostics.compare_unique_signatures == 7
             },
         ))
         .then(inspect::log_resource::<LabDiagnostics>(

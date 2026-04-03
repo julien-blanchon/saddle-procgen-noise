@@ -10,6 +10,7 @@ use crate::{
     sample::{NoiseRange, NoiseSource, RangeSemantics},
     simplex::Simplex,
     tiling::map_to_torus_4d,
+    value::Value,
     warp::DomainWarp2,
     worley::Worley,
 };
@@ -210,6 +211,7 @@ impl NoiseSource<Vec2> for NoiseRecipe2 {
         match self {
             Self::Perlin(config) => Perlin::from(*config).sample(point),
             Self::Simplex(config) => Simplex::from(*config).sample(point),
+            Self::Value(config) => Value::from(*config).sample(point),
             Self::Worley(config) => Worley::from(*config).sample(point),
             Self::Fbm { source, config } => Fbm::new(source.as_ref(), *config).sample(point),
             Self::Billow { source, config } => Billow::new(source.as_ref(), *config).sample(point),
@@ -230,6 +232,7 @@ impl NoiseSource<Vec2> for NoiseRecipe2 {
         match self {
             Self::Perlin(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Approximate),
             Self::Simplex(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Approximate),
+            Self::Value(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Strict),
             Self::Worley(config) => {
                 <Worley as NoiseSource<Vec2>>::native_range(&Worley::from(*config))
             }
@@ -258,6 +261,7 @@ impl NoiseSource<Vec4> for NoiseRecipe4 {
         match self {
             Self::Perlin(config) => Perlin::from(*config).sample(point),
             Self::Simplex(config) => Simplex::from(*config).sample(point),
+            Self::Value(config) => Value::from(*config).sample(point),
             Self::Fbm { source, config } => Fbm::new(source.as_ref(), *config).sample(point),
             Self::Billow { source, config } => Billow::new(source.as_ref(), *config).sample(point),
             Self::Ridged { source, config } => Ridged::new(source.as_ref(), *config).sample(point),
@@ -269,6 +273,7 @@ impl NoiseSource<Vec4> for NoiseRecipe4 {
         match self {
             Self::Perlin(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Approximate),
             Self::Simplex(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Approximate),
+            Self::Value(_) => NoiseRange::new(-1.0, 1.0, RangeSemantics::Strict),
             Self::Fbm { source, config } => {
                 let base = source.native_range();
                 let peak = peak_amplitude_sum(*config);

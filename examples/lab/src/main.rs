@@ -2,7 +2,7 @@
 mod e2e;
 
 #[cfg(feature = "dev")]
-use bevy::remote::{RemotePlugin, http::RemoteHttpPlugin};
+use bevy::remote::{http::RemoteHttpPlugin, RemotePlugin};
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
@@ -11,11 +11,11 @@ use bevy::{
 #[cfg(feature = "dev")]
 use bevy_brp_extras::BrpExtrasPlugin;
 use saddle_procgen_noise::{
-    GradientRamp, GridRequest2, GridSpace2, NoiseGenerationCompleted, NoiseImageSettings,
-    NoisePlugin, NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2, NoiseRecipe4,
-    NoiseRegenerateRequested, NoiseRuntimeDiagnostics, NoiseSeed, NoiseSource, NoiseSystems,
-    PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, WorleyConfig, WorleyReturnType,
-    generate_grid_sample,
+    generate_grid_sample, GradientRamp, GridRequest2, GridSpace2, NoiseGenerationCompleted,
+    NoiseImageSettings, NoisePlugin, NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2,
+    NoiseRecipe4, NoiseRegenerateRequested, NoiseRuntimeDiagnostics, NoiseSeed, NoiseSource,
+    NoiseSystems, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, ValueConfig, WorleyConfig,
+    WorleyReturnType,
 };
 
 #[cfg(feature = "dev")]
@@ -33,6 +33,7 @@ pub enum LabView {
 pub enum AsyncPreset {
     #[default]
     Perlin,
+    Value,
     Simplex,
     Worley,
     Fbm,
@@ -242,6 +243,7 @@ fn spawn_compare_panels(
 ) -> CompareArtifacts {
     let presets = [
         ("Perlin", compare_recipe(AsyncPreset::Perlin)),
+        ("Value", compare_recipe(AsyncPreset::Value)),
         ("Simplex", compare_recipe(AsyncPreset::Simplex)),
         ("Worley", compare_recipe(AsyncPreset::Worley)),
         ("FBM", compare_recipe(AsyncPreset::Fbm)),
@@ -361,14 +363,16 @@ fn handle_keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut control: ResMut<La
     if keys.just_pressed(KeyCode::KeyQ) {
         control.pending_preset = Some(AsyncPreset::Perlin);
     } else if keys.just_pressed(KeyCode::KeyW) {
-        control.pending_preset = Some(AsyncPreset::Simplex);
+        control.pending_preset = Some(AsyncPreset::Value);
     } else if keys.just_pressed(KeyCode::KeyE) {
-        control.pending_preset = Some(AsyncPreset::Worley);
+        control.pending_preset = Some(AsyncPreset::Simplex);
     } else if keys.just_pressed(KeyCode::KeyR) {
-        control.pending_preset = Some(AsyncPreset::Fbm);
+        control.pending_preset = Some(AsyncPreset::Worley);
     } else if keys.just_pressed(KeyCode::KeyT) {
-        control.pending_preset = Some(AsyncPreset::Ridged);
+        control.pending_preset = Some(AsyncPreset::Fbm);
     } else if keys.just_pressed(KeyCode::KeyY) {
+        control.pending_preset = Some(AsyncPreset::Ridged);
+    } else if keys.just_pressed(KeyCode::KeyU) {
         control.pending_preset = Some(AsyncPreset::Warp);
     }
 
@@ -503,7 +507,7 @@ fn update_overlay(
         })
         .unwrap_or_else(|| "last result: waiting".to_string());
     **text = format!(
-        "View: {:?}\nPreset: {:?}\nSeed: {}\nPreview: {}x{}\nRecipe: {}\nAsync signature: {}\nCompare panels: {} ({} unique)\nQueued/completed: {}/{}\nRunning: {} | Pending: {}\nSeam delta: {:.6}\n{}\n1/2/3 switch views | Q..Y change preset | Space regenerate",
+        "View: {:?}\nPreset: {:?}\nSeed: {}\nPreview: {}x{}\nRecipe: {}\nAsync signature: {}\nCompare panels: {} ({} unique)\nQueued/completed: {}/{}\nRunning: {} | Pending: {}\nSeam delta: {:.6}\n{}\n1/2/3 switch views | Q..U change preset | Space regenerate",
         diagnostics.active_view,
         diagnostics.active_preset,
         diagnostics.seed,
@@ -541,6 +545,9 @@ pub(crate) fn request_regeneration(world: &mut World) {
 fn async_request(preset: AsyncPreset, seed: u32) -> saddle_procgen_noise::GridSampleRequest {
     let recipe = match preset {
         AsyncPreset::Perlin => NoiseRecipe2::Perlin(PerlinConfig {
+            seed: NoiseSeed(seed),
+        }),
+        AsyncPreset::Value => NoiseRecipe2::Value(ValueConfig {
             seed: NoiseSeed(seed),
         }),
         AsyncPreset::Simplex => NoiseRecipe2::Simplex(SimplexConfig {

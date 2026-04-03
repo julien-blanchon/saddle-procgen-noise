@@ -13,6 +13,7 @@ mod seed;
 mod simplex;
 mod systems;
 mod tiling;
+mod value;
 mod warp;
 mod worley;
 
@@ -22,8 +23,8 @@ pub use components::{
 };
 pub use config::{
     DomainTransform2, DomainTransform3, DomainTransform4, FractalConfig, GridSpace2, GridSpace3,
-    NoiseRecipe2, NoiseRecipe4, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, WarpConfig2,
-    WarpConfig3, WorleyConfig, WorleyDistanceMetric, WorleyReturnType,
+    NoiseRecipe2, NoiseRecipe4, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig,
+    ValueConfig, WarpConfig2, WarpConfig3, WorleyConfig, WorleyDistanceMetric, WorleyReturnType,
 };
 pub use fractal::{Billow, Fbm, Ridged, peak_amplitude_sum};
 pub use grid::{
@@ -43,6 +44,7 @@ pub use sample::{NoiseRange, NoiseSource, NoiseSourceExt, RangeSemantics};
 pub use seed::NoiseSeed;
 pub use simplex::Simplex;
 pub use tiling::{Tiled2, map_to_torus_4d};
+pub use value::Value;
 pub use warp::{DomainWarp2, DomainWarp3};
 pub use worley::Worley;
 
@@ -143,6 +145,7 @@ impl Plugin for NoisePlugin {
             .register_type::<RidgedConfig>()
             .register_type::<SimplexConfig>()
             .register_type::<TileConfig>()
+            .register_type::<ValueConfig>()
             .register_type::<WarpConfig2>()
             .register_type::<WarpConfig3>()
             .register_type::<WorleyConfig>()
