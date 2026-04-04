@@ -23,8 +23,8 @@ pub use components::{
 };
 pub use config::{
     DomainTransform2, DomainTransform3, DomainTransform4, FractalConfig, GridSpace2, GridSpace3,
-    NoiseRecipe2, NoiseRecipe4, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig,
-    ValueConfig, WarpConfig2, WarpConfig3, WorleyConfig, WorleyDistanceMetric, WorleyReturnType,
+    NoiseRecipe2, NoiseRecipe4, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, ValueConfig,
+    WarpConfig2, WarpConfig3, WorleyConfig, WorleyDistanceMetric, WorleyReturnType,
 };
 pub use fractal::{Billow, Fbm, Ridged, peak_amplitude_sum};
 pub use grid::{

@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 use crate::{
+    NoiseSeed,
     config::ValueConfig,
     hash::{hash2, hash3, hash4, unit_float},
     perlin::fade_curve,
     sample::{NoiseRange, NoiseSource, RangeSemantics},
-    NoiseSeed,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]

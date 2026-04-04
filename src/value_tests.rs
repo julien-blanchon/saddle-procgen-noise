@@ -1,9 +1,9 @@
 use super::*;
 use crate::{
+    NoiseSeed,
     config::ValueConfig,
     hash::{hash2, hash3, hash4},
     sample::{NoiseSource, RangeSemantics},
-    NoiseSeed,
 };
 
 const EPSILON: f32 = 1.0e-6;
