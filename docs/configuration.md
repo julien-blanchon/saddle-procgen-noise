@@ -142,10 +142,21 @@ Applied as: `point * scale + translation`
 ### `NoiseRecipe2` and `NoiseRecipe4`
 
 The recursive recipe enums are the config-driven bridge between pure samplers and the runtime layer.
+All recipe types implement `Serialize`/`Deserialize` for RON/JSON asset loading.
 
-- `NoiseRecipe2`: `Perlin`, `Simplex`, `Worley`, `Fbm`, `Billow`, `Ridged`, `Warp`,
-  `Transformed`, `Tiled`
+- `NoiseRecipe2`: `Perlin`, `Simplex`, `Value`, `Worley`, `Fbm`, `Billow`, `Ridged`, `Warp`,
+  `MultiWarp`, `Transformed`, `Tiled`
 - `NoiseRecipe4`: `Perlin`, `Simplex`, `Fbm`, `Billow`, `Ridged`, `Transformed`
+
+#### `MultiWarp` variant
+
+Quilez-style multi-level domain warping. Each layer warps the input coordinates before the next layer:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `base` | `Box<NoiseRecipe2>` | The noise to sample at the final warped position |
+| `layers` | `Vec<NoiseRecipe2>` | Warp layers applied sequentially (typically 2 for `f(p + fbm(p + fbm(p)))`) |
+| `amplitude` | `f32` | Scale factor for the warp displacement |
 
 For BRP, overlays, and logs, both enums expose `debug_stack()` so the current algorithm stack can
 be summarized without source-code inspection.
@@ -172,3 +183,81 @@ be summarized without source-code inspection.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `request_override` | `Option<GridSampleRequest>` | Replace the preview request before generating; `None` regenerates with the existing request |
+
+## Builder API
+
+`NoiseBuilder` provides a fluent interface for constructing `NoiseRecipe2` pipelines:
+
+```rust
+use saddle_procgen_noise::NoiseBuilder;
+
+let recipe = NoiseBuilder::perlin()
+    .seed(42)
+    .fbm()
+    .octaves(6)
+    .frequency(1.5)
+    .lacunarity(2.1)
+    .gain(0.48)
+    .warp()
+    .warp_amplitude(Vec2::splat(0.9))
+    .warp_frequency(1.8)
+    .build();
+```
+
+Available base types: `perlin()`, `simplex()`, `value()`, `worley()`.
+Fractal modes: `.fbm()`, `.billow()`, `.ridged()`.
+Domain warp: `.warp()` with `.warp_amplitude()` and `.warp_frequency()`.
+
+## Entity-Driven Pipeline
+
+### `NoiseImageGenerator` (Component)
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `recipe` | `NoiseRecipe2` | `Perlin(default)` | Noise recipe to generate |
+| `grid` | `GridRequest2` | `256x256, [-2,2]` | Grid resolution and bounds |
+| `image_settings` | `NoiseImageSettings` | default | Gradient, normalization settings |
+
+### `NoiseImageOutput` (Component)
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `handle` | `Option<Handle<Image>>` | Updated automatically when `NoiseImageGenerator` changes |
+| `generation_time_ms` | f32 | Time taken for last generation |
+
+Add `NoiseImageGenerator` to an entity and the `Pipeline` system set will automatically generate the image and insert/update `NoiseImageOutput`.
+
+## Noise Asset Loading
+
+Enable the `asset` feature (on by default) to load noise recipes from files:
+
+- `.noise.ron` — RON format
+- `.noise.json` — JSON format
+
+```ron
+// terrain.noise.ron
+NoiseAsset(
+    recipe: Fbm(
+        source: Perlin(PerlinConfig(seed: NoiseSeed(42))),
+        config: FractalConfig(octaves: 6, base_frequency: 1.2),
+    ),
+)
+```
+
+## Mask / Brush Utilities
+
+### `stamp_noise(buffer, buffer_size, center, radius, strength, recipe, additive)`
+
+Stamps a noise pattern onto a mutable `f32` buffer with quadratic falloff. Useful for terrain painting, sculpting, or density field modification.
+
+### `modulate_grid(grid, recipe, grid_request)`
+
+Multiplies each grid cell by a noise-derived factor. Useful for erosion patterns or weathering.
+
+### `noise_mask(recipe, grid_request, threshold) -> Vec<bool>`
+
+Creates a binary mask from a noise recipe at a given threshold.
+
+### `generate_heightmap(recipe, grid_request) -> Vec<f32>`
+
+Generates a normalized `[0, 1]` heightmap from any `NoiseRecipe2`. Convenience wrapper around `sample_grid2` + normalization.

@@ -1,14 +1,15 @@
 # Architecture
 
-`saddle-procgen-noise` is split into four layers.
+`saddle-procgen-noise` is split into six layers.
 
 ## 1. Primitive Functions
 
 - `perlin.rs`: improved lattice gradient noise in 2D, 3D, and 4D
 - `simplex.rs`: simplex-style gradient noise in 2D, 3D, and 4D
+- `value.rs`: hash-interpolated lattice noise in 2D, 3D, and 4D
 - `worley.rs`: cellular feature-point distance noise in 2D and 3D
 - `hash.rs`: deterministic integer hashing for lattice points and feature-point jitter
-- `seed.rs`: explicit seed type, no global RNG state
+- `seed.rs`: explicit seed type with `Serialize`/`Deserialize` support, no global RNG state
 
 All primitive sampling is pure Rust and deterministic from `(seed, coordinates)`.
 
@@ -18,7 +19,10 @@ All primitive sampling is pure Rust and deterministic from `(seed, coordinates)`
 - `warp.rs`: domain-warp wrappers for 2D and 3D
 - `tiling.rs`: 2D seamless mapping through a 4D torus transform
 - `remap.rs`: clamp, remap, gain, bias, contrast, and threshold helpers
-- `config.rs`: caller-owned configuration objects and recursive recipe enums
+- `config.rs`: caller-owned configuration objects and recursive recipe enums (all `Serialize`/`Deserialize`)
+- `builder.rs`: fluent `NoiseBuilder` API for constructing `NoiseRecipe2` pipelines without manual enum construction
+
+The `NoiseRecipe2` enum now includes a `MultiWarp` variant for Quilez-style multi-level domain warping (`f(p + fbm(p + fbm(p)))`).
 
 Composition stays outside ECS. Runtime systems only orchestrate jobs and image publication.
 
@@ -29,11 +33,20 @@ Composition stays outside ECS. Runtime systems only orchestrate jobs and image p
 
 The grid layer is the bridge between pure sampling and runtime orchestration. It is still usable without a Bevy `App`.
 
-## 4. Runtime Integration
+## 4. Higher-Level Utilities
+
+- `mask.rs`: noise mask/brush tools — `stamp_noise()` for brush-stamping noise onto buffers with quadratic falloff, `modulate_grid()` for erosion/weathering, `noise_mask()` for binary threshold masks
+- `pipeline.rs`: entity-driven `NoiseImageGenerator` → `NoiseImageOutput` component pipeline. Watches `Changed<NoiseImageGenerator>` and produces `Image` handles automatically. Also provides `generate_heightmap()` for terrain workflows.
+
+## 5. Asset Integration
+
+- `asset.rs` (behind `asset` feature flag): `NoiseAsset` as a Bevy `Asset` + `TypePath`, with `NoiseRonAssetLoader` (`.noise.ron`) and `NoiseJsonAssetLoader` (`.noise.json`). Recipes can be authored as data files and loaded via Bevy's asset system.
+
+## 6. Runtime Integration
 
 - `components.rs`: preview resources and messages
 - `systems.rs`: async queueing, task polling, and preview-image updates
-- `lib.rs`: `NoisePlugin` and public `NoiseSystems`
+- `lib.rs`: `NoisePlugin` and public `NoiseSystems` (now includes `Pipeline` set)
 
 The runtime layer intentionally does not model the math as ECS. It only manages:
 

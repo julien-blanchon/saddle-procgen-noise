@@ -1,6 +1,7 @@
 use bevy::platform::time::Instant;
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     config::{GridSpace2, GridSpace3, NoiseRecipe2, NoiseRecipe4},
@@ -15,7 +16,7 @@ use crate::{
     worley::Worley,
 };
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GridRequest2 {
     pub size: UVec2,
     pub space: GridSpace2,
@@ -33,7 +34,7 @@ impl Default for GridRequest2 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GridRequest3 {
     pub size: UVec3,
     pub space: GridSpace3,
@@ -122,7 +123,7 @@ impl MaskGrid2 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GridSampleRequest {
     pub recipe: NoiseRecipe2,
     pub grid: GridRequest2,
@@ -225,6 +226,22 @@ impl NoiseSource<Vec2> for NoiseRecipe2 {
                 .sample(point),
             Self::Transformed { source, transform } => source.sample(transform.apply(point)),
             Self::Tiled { source, config } => source.sample(map_to_torus_4d(point, *config)),
+            Self::MultiWarp {
+                base,
+                layers,
+                amplitude,
+            } => {
+                // Quilez-style nested domain warping: f(p + fbm(p + fbm(p)))
+                let mut warped = point;
+                for layer in layers {
+                    let q = Vec2::new(
+                        layer.sample(warped + Vec2::new(0.0, 0.0)),
+                        layer.sample(warped + Vec2::new(5.2, 1.3)),
+                    );
+                    warped = point + q * *amplitude;
+                }
+                base.sample(warped)
+            }
         }
     }
 
@@ -252,6 +269,7 @@ impl NoiseSource<Vec2> for NoiseRecipe2 {
             Self::Warp { base, .. } => base.native_range(),
             Self::Transformed { source, .. } => source.native_range(),
             Self::Tiled { source, .. } => source.native_range(),
+            Self::MultiWarp { base, .. } => base.native_range(),
         }
     }
 }

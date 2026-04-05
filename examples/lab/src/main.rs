@@ -2,7 +2,7 @@
 mod e2e;
 
 #[cfg(feature = "dev")]
-use bevy::remote::{http::RemoteHttpPlugin, RemotePlugin};
+use bevy::remote::{RemotePlugin, http::RemoteHttpPlugin};
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
@@ -11,11 +11,11 @@ use bevy::{
 #[cfg(feature = "dev")]
 use bevy_brp_extras::BrpExtrasPlugin;
 use saddle_procgen_noise::{
-    generate_grid_sample, GradientRamp, GridRequest2, GridSpace2, NoiseGenerationCompleted,
-    NoiseImageSettings, NoisePlugin, NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2,
-    NoiseRecipe4, NoiseRegenerateRequested, NoiseRuntimeDiagnostics, NoiseSeed, NoiseSource,
-    NoiseSystems, PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, ValueConfig, WorleyConfig,
-    WorleyReturnType,
+    GradientRamp, GridRequest2, GridSpace2, NoiseGenerationCompleted, NoiseImageSettings,
+    NoisePlugin, NoisePreviewConfig, NoisePreviewHandle, NoiseRecipe2, NoiseRecipe4,
+    NoiseRegenerateRequested, NoiseRuntimeDiagnostics, NoiseSeed, NoiseSource, NoiseSystems,
+    PerlinConfig, RidgedConfig, SimplexConfig, TileConfig, ValueConfig, WorleyConfig,
+    WorleyReturnType, generate_grid_sample,
 };
 
 #[cfg(feature = "dev")]
@@ -39,6 +39,7 @@ pub enum AsyncPreset {
     Fbm,
     Ridged,
     Warp,
+    MultiWarp,
 }
 
 #[derive(Debug, Clone, Resource, Reflect)]
@@ -169,7 +170,6 @@ fn lab_brp_port() -> u16 {
         .unwrap_or(DEFAULT_BRP_PORT)
 }
 
-
 fn setup(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     commands.spawn((Name::new("Noise Lab Camera"), Camera2d));
     let async_root = commands
@@ -249,6 +249,7 @@ fn spawn_compare_panels(
         ("FBM", compare_recipe(AsyncPreset::Fbm)),
         ("Ridged", compare_recipe(AsyncPreset::Ridged)),
         ("Warp", compare_recipe(AsyncPreset::Warp)),
+        ("MultiWarp", compare_recipe(AsyncPreset::MultiWarp)),
     ];
 
     let mut signatures = Vec::with_capacity(presets.len());
@@ -374,6 +375,8 @@ fn handle_keyboard_input(keys: Res<ButtonInput<KeyCode>>, mut control: ResMut<La
         control.pending_preset = Some(AsyncPreset::Ridged);
     } else if keys.just_pressed(KeyCode::KeyU) {
         control.pending_preset = Some(AsyncPreset::Warp);
+    } else if keys.just_pressed(KeyCode::KeyI) {
+        control.pending_preset = Some(AsyncPreset::MultiWarp);
     }
 
     if keys.just_pressed(KeyCode::Space) {
@@ -507,7 +510,7 @@ fn update_overlay(
         })
         .unwrap_or_else(|| "last result: waiting".to_string());
     **text = format!(
-        "View: {:?}\nPreset: {:?}\nSeed: {}\nPreview: {}x{}\nRecipe: {}\nAsync signature: {}\nCompare panels: {} ({} unique)\nQueued/completed: {}/{}\nRunning: {} | Pending: {}\nSeam delta: {:.6}\n{}\n1/2/3 switch views | Q..U change preset | Space regenerate",
+        "View: {:?}\nPreset: {:?}\nSeed: {}\nPreview: {}x{}\nRecipe: {}\nAsync signature: {}\nCompare panels: {} ({} unique)\nQueued/completed: {}/{}\nRunning: {} | Pending: {}\nSeam delta: {:.6}\n{}\n1/2/3 switch views | Q..I change preset | Space regenerate",
         diagnostics.active_view,
         diagnostics.active_preset,
         diagnostics.seed,
@@ -603,6 +606,41 @@ fn async_request(preset: AsyncPreset, seed: u32) -> saddle_procgen_noise::GridSa
                 frequency: 1.8,
                 ..default()
             },
+        },
+        AsyncPreset::MultiWarp => NoiseRecipe2::MultiWarp {
+            base: Box::new(NoiseRecipe2::Fbm {
+                source: Box::new(NoiseRecipe2::Perlin(PerlinConfig {
+                    seed: NoiseSeed(seed),
+                })),
+                config: saddle_procgen_noise::FractalConfig {
+                    octaves: 5,
+                    base_frequency: 1.0,
+                    ..default()
+                },
+            }),
+            layers: vec![
+                NoiseRecipe2::Fbm {
+                    source: Box::new(NoiseRecipe2::Simplex(SimplexConfig {
+                        seed: NoiseSeed(seed.saturating_add(10)),
+                    })),
+                    config: saddle_procgen_noise::FractalConfig {
+                        octaves: 4,
+                        base_frequency: 1.2,
+                        ..default()
+                    },
+                },
+                NoiseRecipe2::Fbm {
+                    source: Box::new(NoiseRecipe2::Simplex(SimplexConfig {
+                        seed: NoiseSeed(seed.saturating_add(20)),
+                    })),
+                    config: saddle_procgen_noise::FractalConfig {
+                        octaves: 4,
+                        base_frequency: 1.2,
+                        ..default()
+                    },
+                },
+            ],
+            amplitude: 4.0,
         },
     };
 

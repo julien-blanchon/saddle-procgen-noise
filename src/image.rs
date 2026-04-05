@@ -3,16 +3,17 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{grid::Grid2, sample::NoiseRange};
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GradientStop {
     pub position: f32,
     pub color: Color,
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GradientRamp {
     pub stops: Vec<GradientStop>,
 }
@@ -134,14 +135,14 @@ impl Default for GradientRamp {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default, Serialize, Deserialize)]
 pub enum ImageOutputMode {
     #[default]
     Grayscale,
     Gradient,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Default, Serialize, Deserialize)]
 pub enum ImageNormalization {
     Observed,
     #[default]
@@ -149,7 +150,7 @@ pub enum ImageNormalization {
     Explicit(Vec2),
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct NoiseImageSettings {
     pub mode: ImageOutputMode,
     pub normalization: ImageNormalization,

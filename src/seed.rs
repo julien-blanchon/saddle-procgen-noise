@@ -1,6 +1,21 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Reflect, Resource)]
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Reflect,
+    Resource,
+    Serialize,
+    Deserialize,
+)]
 #[reflect(Resource)]
 pub struct NoiseSeed(pub u32);
 

@@ -1,12 +1,17 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(feature = "asset")]
+mod asset;
+mod builder;
 mod components;
 mod config;
 mod fractal;
 mod grid;
 mod hash;
 mod image;
+mod mask;
 mod perlin;
+mod pipeline;
 mod remap;
 mod sample;
 mod seed;
@@ -17,6 +22,9 @@ mod value;
 mod warp;
 mod worley;
 
+#[cfg(feature = "asset")]
+pub use asset::{NoiseAsset, NoiseAssetLoaderError, NoiseJsonAssetLoader, NoiseRonAssetLoader};
+pub use builder::{FractalBuilder, NoiseBuilder, RidgedBuilder, WarpBuilder};
 pub use components::{
     NoiseGenerationCompleted, NoisePreviewConfig, NoisePreviewHandle, NoiseRegenerateRequested,
     NoiseRuntimeDiagnostics,
@@ -35,7 +43,9 @@ pub use image::{
     GradientRamp, GradientStop, ImageNormalization, ImageOutputMode, NoiseImageSettings,
     grid_to_gradient_image, grid_to_grayscale_image, pack_scalar_layers_rgba,
 };
+pub use mask::{modulate_grid, noise_mask, stamp_noise};
 pub use perlin::{Perlin, fade_curve};
+pub use pipeline::{NoiseImageGenerator, NoiseImageOutput, generate_heightmap};
 pub use remap::{
     bias, binary_threshold, clamp_unit, contrast_pow, gain, remap_clamped, remap_range,
     signed_to_unit, smoothstep_threshold, unit_to_signed,
@@ -59,6 +69,7 @@ pub enum NoiseSystems {
     QueueJobs,
     PollJobs,
     UpdatePreview,
+    Pipeline,
 }
 
 #[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
@@ -117,6 +128,14 @@ impl Plugin for NoisePlugin {
             app.insert_resource(NoiseRuntimeDiagnostics::default());
         }
 
+        // Register asset loaders (only if AssetPlugin is present)
+        #[cfg(feature = "asset")]
+        if app.is_plugin_added::<bevy::asset::AssetPlugin>() {
+            app.init_asset::<NoiseAsset>()
+                .register_asset_loader(NoiseRonAssetLoader)
+                .register_asset_loader(NoiseJsonAssetLoader);
+        }
+
         app.init_resource::<systems::NoiseRuntimeState>()
             .init_resource::<systems::PendingNoiseJob>()
             .init_resource::<systems::QueuedNoiseRequest>()
@@ -136,6 +155,8 @@ impl Plugin for NoisePlugin {
             .register_type::<ImageNormalization>()
             .register_type::<ImageOutputMode>()
             .register_type::<NoiseImageSettings>()
+            .register_type::<NoiseImageGenerator>()
+            .register_type::<NoiseImageOutput>()
             .register_type::<NoisePreviewConfig>()
             .register_type::<NoiseRecipe2>()
             .register_type::<NoiseRecipe4>()
@@ -159,6 +180,7 @@ impl Plugin for NoisePlugin {
                     NoiseSystems::QueueJobs,
                     NoiseSystems::PollJobs,
                     NoiseSystems::UpdatePreview,
+                    NoiseSystems::Pipeline,
                 )
                     .chain(),
             )
@@ -179,6 +201,10 @@ impl Plugin for NoisePlugin {
                 systems::update_preview
                     .in_set(NoiseSystems::UpdatePreview)
                     .run_if(systems::runtime_is_active),
+            )
+            .add_systems(
+                self.update_schedule,
+                pipeline::generate_noise_images.in_set(NoiseSystems::Pipeline),
             );
     }
 }

@@ -397,7 +397,7 @@ dependencies = [
  "downcast-rs 2.0.2",
  "either",
  "petgraph",
- "ron",
+ "ron 0.12.1",
  "serde",
  "smallvec",
  "thiserror 2.0.18",
@@ -494,7 +494,7 @@ dependencies = [
  "futures-lite",
  "futures-util",
  "js-sys",
- "ron",
+ "ron 0.12.1",
  "serde",
  "stackfuture",
  "thiserror 2.0.18",
@@ -1354,7 +1354,7 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "derive_more",
- "ron",
+ "ron 0.12.1",
  "serde",
  "thiserror 2.0.18",
  "uuid",
@@ -4293,6 +4293,19 @@ dependencies = [
 
 [[package]]
 name = "ron"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63f3aa105dea217ef30d89581b65a4d527a19afc95ef5750be3890e8d3c5b837"
+dependencies = [
+ "base64",
+ "bitflags 2.11.0",
+ "serde",
+ "serde_derive",
+ "unicode-ident",
+]
+
+[[package]]
+name = "ron"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4147b952f3f819eca0e99527022f7d6a8d05f111aeb0a62960c74eb283bec8fc"
@@ -4388,6 +4401,9 @@ name = "saddle-procgen-noise"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "ron 0.9.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -4425,6 +4441,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "saddle-procgen-noise-example-explorer"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "saddle-procgen-noise",
+ "saddle-procgen-noise-example-common",
+]
+
+[[package]]
+name = "saddle-procgen-noise-example-gallery"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "saddle-procgen-noise",
+ "saddle-procgen-noise-example-common",
+]
+
+[[package]]
 name = "saddle-procgen-noise-example-heightmap"
 version = "0.1.0"
 dependencies = [
@@ -4435,6 +4469,15 @@ dependencies = [
 
 [[package]]
 name = "saddle-procgen-noise-example-seamless"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "saddle-procgen-noise",
+ "saddle-procgen-noise-example-common",
+]
+
+[[package]]
+name = "saddle-procgen-noise-example-terrain"
 version = "0.1.0"
 dependencies = [
  "bevy",

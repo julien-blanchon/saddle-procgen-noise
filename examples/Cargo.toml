@@ -6,6 +6,9 @@ members = [
     "domain_warp",
     "seamless",
     "async_chunks",
+    "gallery",
+    "explorer",
+    "terrain",
     "lab",
 ]
 resolver = "3"

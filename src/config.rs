@@ -1,8 +1,9 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::NoiseSeed;
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct PerlinConfig {
     pub seed: NoiseSeed,
 }
@@ -15,7 +16,7 @@ impl Default for PerlinConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct SimplexConfig {
     pub seed: NoiseSeed,
 }
@@ -28,7 +29,7 @@ impl Default for SimplexConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct ValueConfig {
     pub seed: NoiseSeed,
 }
@@ -41,7 +42,7 @@ impl Default for ValueConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default, Serialize, Deserialize)]
 pub enum WorleyDistanceMetric {
     #[default]
     Euclidean,
@@ -49,7 +50,7 @@ pub enum WorleyDistanceMetric {
     Chebyshev,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Default, Serialize, Deserialize)]
 pub enum WorleyReturnType {
     #[default]
     F1,
@@ -57,7 +58,7 @@ pub enum WorleyReturnType {
     F2MinusF1,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct WorleyConfig {
     pub seed: NoiseSeed,
     pub jitter: f32,
@@ -76,7 +77,7 @@ impl Default for WorleyConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct FractalConfig {
     pub octaves: u8,
     pub base_frequency: f32,
@@ -97,7 +98,7 @@ impl Default for FractalConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct RidgedConfig {
     pub fractal: FractalConfig,
     pub ridge_offset: f32,
@@ -114,7 +115,7 @@ impl Default for RidgedConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct WarpConfig2 {
     pub amplitude: Vec2,
     pub frequency: f32,
@@ -133,7 +134,7 @@ impl Default for WarpConfig2 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct WarpConfig3 {
     pub amplitude: Vec3,
     pub frequency: f32,
@@ -154,7 +155,7 @@ impl Default for WarpConfig3 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct TileConfig {
     pub period: Vec2,
 }
@@ -165,7 +166,7 @@ impl Default for TileConfig {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct DomainTransform2 {
     pub translation: Vec2,
     pub scale: Vec2,
@@ -191,7 +192,7 @@ impl Default for DomainTransform2 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct DomainTransform3 {
     pub translation: Vec3,
     pub scale: Vec3,
@@ -215,7 +216,7 @@ impl Default for DomainTransform3 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct DomainTransform4 {
     pub translation: Vec4,
     pub scale: Vec4,
@@ -237,7 +238,7 @@ impl Default for DomainTransform4 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GridSpace2 {
     pub min: Vec2,
     pub max: Vec2,
@@ -272,7 +273,7 @@ impl Default for GridSpace2 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Reflect, Serialize, Deserialize)]
 pub struct GridSpace3 {
     pub min: Vec3,
     pub max: Vec3,
@@ -313,7 +314,7 @@ impl Default for GridSpace3 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(no_field_bounds)]
 pub enum NoiseRecipe4 {
     Perlin(PerlinConfig),
@@ -391,7 +392,7 @@ impl Default for NoiseRecipe4 {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Reflect, Serialize, Deserialize)]
 #[reflect(no_field_bounds)]
 pub enum NoiseRecipe2 {
     Perlin(PerlinConfig),
@@ -432,6 +433,18 @@ pub enum NoiseRecipe2 {
         source: Box<NoiseRecipe4>,
         config: TileConfig,
     },
+    /// Multi-level domain warping (Quilez pattern): `f(p + fbm(p + fbm(p)))`.
+    ///
+    /// Each layer applies domain warping using the result of the previous layer.
+    /// The `layers` field contains the warp recipes applied in sequence,
+    /// each displacing the coordinate by its sampled value scaled by `amplitude`.
+    MultiWarp {
+        #[reflect(ignore)]
+        base: Box<NoiseRecipe2>,
+        #[reflect(ignore)]
+        layers: Vec<NoiseRecipe2>,
+        amplitude: f32,
+    },
 }
 
 impl NoiseRecipe2 {
@@ -448,6 +461,7 @@ impl NoiseRecipe2 {
             Self::Warp { .. } => "Warp",
             Self::Transformed { .. } => "Transformed",
             Self::Tiled { .. } => "Tiled",
+            Self::MultiWarp { .. } => "MultiWarp",
         }
     }
 
@@ -493,6 +507,16 @@ impl NoiseRecipe2 {
                 format!("Transformed(source={})", source.debug_stack())
             }
             Self::Tiled { source, .. } => format!("Tiled(source={})", source.debug_stack()),
+            Self::MultiWarp {
+                base,
+                layers,
+                amplitude,
+            } => format!(
+                "MultiWarp(base={}, layers={}, amp={:.2})",
+                base.debug_stack(),
+                layers.len(),
+                amplitude
+            ),
         }
     }
 }

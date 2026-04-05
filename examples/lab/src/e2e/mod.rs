@@ -7,8 +7,8 @@ use saddle_bevy_e2e::{
 use saddle_procgen_noise::NoiseSystems;
 
 use crate::{
-    request_regeneration, set_preset, set_view, AsyncPreset, AsyncPreviewSprite,
-    BeforeRegenerationSignature, LabDiagnostics, LabView,
+    AsyncPreset, AsyncPreviewSprite, BeforeRegenerationSignature, LabDiagnostics, LabView,
+    request_regeneration, set_preset, set_view,
 };
 
 pub struct NoiseLabE2EPlugin;

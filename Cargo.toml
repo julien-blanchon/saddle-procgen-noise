@@ -7,8 +7,15 @@ repository = "https://github.com/julien-blanchon/saddle-procgen-noise"
 license = "MIT-0"
 description = "Deterministic noise generation utilities for procedural workflows in Bevy"
 
+[features]
+default = ["asset"]
+asset = ["dep:ron", "dep:serde_json"]
+
 [dependencies]
 bevy = { version = "0.18", features = ["serialize"] }
+serde = { version = "1", features = ["derive"] }
+ron = { version = "0.9", optional = true }
+serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 proptest = "1"
