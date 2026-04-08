@@ -82,6 +82,7 @@ pub fn scenario_by_name(name: &str) -> Option<Scenario> {
         "noise_seed_mutation" => Some(noise_seed_mutation()),
         "noise_fbm_recipe" => Some(noise_fbm_recipe()),
         "noise_seamless_tiles" => Some(noise_seamless_tiles()),
+        "noise_keyboard_workflow" => Some(noise_keyboard_workflow()),
         _ => None,
     }
 }
@@ -95,6 +96,7 @@ pub fn list_scenarios() -> Vec<&'static str> {
         "noise_seed_mutation",
         "noise_fbm_recipe",
         "noise_seamless_tiles",
+        "noise_keyboard_workflow",
     ]
 }
 
@@ -468,5 +470,115 @@ fn noise_async_regen() -> Scenario {
         .then(Action::Screenshot("async_after".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("noise_async_regen"))
+        .build()
+}
+
+fn noise_keyboard_workflow() -> Scenario {
+    Scenario::builder("noise_keyboard_workflow")
+        .description(
+            "Use the lab's keyboard shortcuts to switch between views and presets, then trigger a regeneration to verify the interactive control path end-to-end.",
+        )
+        .then(Action::WaitFrames(30))
+        .then(Action::HoldKey {
+            key: KeyCode::Digit2,
+            frames: 1,
+        })
+        .then(wait_for_view(LabView::Compare))
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "compare view is active",
+            |diagnostics| {
+                diagnostics.active_view == LabView::Compare
+                    && diagnostics.compare_panel_count == 8
+                    && diagnostics.compare_unique_signatures >= 7
+            },
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "noise_keyboard_compare",
+        ))
+        .then(Action::Screenshot("noise_keyboard_compare".into()))
+        .then(Action::WaitFrames(1))
+        .then(Action::HoldKey {
+            key: KeyCode::Digit3,
+            frames: 1,
+        })
+        .then(wait_for_view(LabView::Seamless))
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "seamless view is active",
+            |diagnostics| {
+                diagnostics.active_view == LabView::Seamless
+                    && diagnostics.seamless_edge_delta <= 0.001
+            },
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "noise_keyboard_seamless",
+        ))
+        .then(Action::Screenshot("noise_keyboard_seamless".into()))
+        .then(Action::WaitFrames(1))
+        .then(Action::HoldKey {
+            key: KeyCode::Digit1,
+            frames: 1,
+        })
+        .then(wait_for_view(LabView::AsyncPreview))
+        .then(wait_for_preview_ready())
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "async preview is ready again",
+            |diagnostics| diagnostics.active_view == LabView::AsyncPreview && diagnostics.preview_image_ready,
+        ))
+        .then(remember_signature())
+        .then(Action::HoldKey {
+            key: KeyCode::KeyU,
+            frames: 1,
+        })
+        .then(Action::WaitUntil {
+            label: "warp preset became active".into(),
+            condition: Box::new(|world| {
+                let before = world.resource::<BeforeRegenerationSignature>().0;
+                let diagnostics = world.resource::<LabDiagnostics>();
+                diagnostics.active_preset == AsyncPreset::Warp
+                    && diagnostics.preview_image_ready
+                    && diagnostics.async_signature != 0
+                    && diagnostics.async_signature != before
+            }),
+            max_frames: 240,
+        })
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "warp preset is active",
+            |diagnostics| diagnostics.active_preset == AsyncPreset::Warp && diagnostics.preview_image_ready,
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "noise_keyboard_warp",
+        ))
+        .then(Action::Screenshot("noise_keyboard_warp".into()))
+        .then(Action::WaitFrames(1))
+        .then(remember_signature())
+        .then(Action::HoldKey {
+            key: KeyCode::Space,
+            frames: 1,
+        })
+        .then(Action::WaitUntil {
+            label: "warp regeneration finished".into(),
+            condition: Box::new(|world| {
+                let before = world.resource::<BeforeRegenerationSignature>().0;
+                let diagnostics = world.resource::<LabDiagnostics>();
+                diagnostics.active_view == LabView::AsyncPreview
+                    && diagnostics.active_preset == AsyncPreset::Warp
+                    && diagnostics.async_signature != before
+                    && diagnostics.seed == 14
+            }),
+            max_frames: 240,
+        })
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "regenerated warp preview produced a new signature",
+            |diagnostics| diagnostics.active_view == LabView::AsyncPreview
+                && diagnostics.active_preset == AsyncPreset::Warp
+                && diagnostics.seed == 14
+                && diagnostics.async_signature != 0,
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "noise_keyboard_regenerated",
+        ))
+        .then(Action::Screenshot("noise_keyboard_regenerated".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("noise_keyboard_workflow"))
         .build()
 }
