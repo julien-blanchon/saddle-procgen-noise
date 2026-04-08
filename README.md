@@ -4,6 +4,51 @@ Deterministic noise generation utilities for reusable procedural workflows in Be
 
 `saddle-procgen-noise` is the mathematical foundation for terrain, cave, mask, texture, density-field, and runtime preview workflows. It is not a terrain system, biome system, voxel engine, or world generator.
 
+## When to Use
+
+- **Terrain heightmaps** — FBM-layered noise for continent, ridge, and detail shapes
+- **Cave and density fields** — 3D noise thresholded to carve tunnels and caverns
+- **Voxel block sampling** — deterministic block type from noise-derived height + cave masks
+- **Placement and scatter** — density masks for foliage, rocks, debris positioning (CPU-side)
+- **Temporal variation** — low-frequency noise for wind gusts, weather envelopes, camera shake
+- **Texture and mask baking** — offline generation of weight maps, splat masks, erosion patterns
+- **Data-driven recipes** — serialize noise pipelines as `.noise.ron` / `.noise.json` assets
+- **Tooling and preview** — interactive exploration, editor widgets, visual debugging
+
+## When NOT to Use
+
+- **Real-time per-pixel GPU effects** — wind displacement, grass blade sway, water ripples, dissolve shaders. These sample noise per-vertex or per-pixel every frame and belong in WGSL shaders, not CPU code.
+- **Simple random values** — if you just need a random float, use `fastrand` or `rand`. Coherent spatial noise is overkill.
+- **Grid-based constraint solving** — for tile placement with adjacency rules, use Wave Function Collapse (e.g. `saddle-procgen-wfc`).
+- **Per-cell placement probability** — a simple hash function is cheaper than coherent noise when you don't need spatial continuity (e.g. "is there a tree at this grid cell?").
+
+## CPU vs GPU Guidance
+
+This crate is **CPU-only** — pure Rust running on thread pools. For many workflows this is the right choice; for others, GPU noise is more appropriate:
+
+| Need | Recommended Approach |
+| --- | --- |
+| Chunk-based terrain / voxel generation | **This crate** — async on `AsyncComputeTaskPool`, one-shot per chunk |
+| Foliage / scatter placement (entity spawning) | **This crate** — CPU logic decides where to spawn |
+| Asset baking (heightmaps, masks, textures) | **This crate** — offline generation, save to disk |
+| Camera shake, weather envelope | **This crate** — a few samples per frame, low-frequency |
+| Wind field sampled per-vertex per-frame | **GPU shader** — inline WGSL Perlin/Simplex |
+| Grass blade variation (height, lean, color) | **GPU shader** — per-blade in vertex shader |
+| Water surface displacement | **GPU shader** — per-vertex displacement |
+| Dissolve / VFX effects | **GPU shader** — per-pixel in fragment shader |
+
+A common hybrid pattern: use this crate to **bake noise into textures** at startup or per-chunk, then sample those textures cheaply in GPU shaders.
+
+## Integration with Other Saddles
+
+| Crate | Integration Pattern |
+| --- | --- |
+| `saddle-world-terrain` | `Fbm<Perlin>` generates heightmap arrays fed to `TerrainDataset::from_heights()`. Domain warping adds erosion-like features. See the `island` and `mountain_range` examples. |
+| `saddle-world-voxel-world` | `VoxelBlockSampler` implementations use noise for terrain height (FBM), cave carving (3D threshold), and decoration placement. See the showcase preset in `examples/support/`. |
+| `saddle-rendering-grass` | Pre-bake noise textures for blade variation; runtime wind uses GPU noise. |
+| `saddle-world-weather` | Low-frequency FBM for gust envelopes and precipitation patterns. |
+| `saddle-systems-game-feel` | FBM-driven camera shake for organic, multi-octave trauma response. |
+
 ## Quick Start
 
 ### Builder API (recommended)

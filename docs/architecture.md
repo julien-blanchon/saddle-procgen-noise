@@ -113,3 +113,30 @@ Flow:
 5. Consumers such as examples or labs bind the published `Handle<Image>` to sprites or UI.
 
 This keeps the public runtime surface generic while preserving a fully pure-Rust core.
+
+## CPU vs GPU Design Decision
+
+All noise algorithms in this crate are **CPU-only** by design. This is intentional, not a limitation to be worked around.
+
+### Why CPU
+
+- **Determinism** — CPU floating-point behavior is consistent across hardware. GPU float precision varies between vendors and driver versions, making reproducible world generation unreliable.
+- **Testability** — pure Rust functions are trivially unit-testable with `proptest` and standard assertions. GPU compute requires a render context.
+- **Composability** — recursive `NoiseRecipe2` enums allow arbitrary nesting (FBM of warped ridged simplex). GPU shader branching is limited and dynamic dispatch is expensive.
+- **Serialization** — recipes serialize to RON/JSON for asset pipelines and tooling. Shader parameters require custom encoding.
+- **No render context** — sampling works without a Bevy `App`, in CLI tools, tests, or offline bakers.
+
+### When GPU Noise Is Better
+
+For anything sampled **per-vertex or per-pixel every frame**, CPU noise is the wrong tool:
+
+- Wind displacement (per-vertex in vertex shader)
+- Grass blade variation (per-blade)
+- Water surface animation (per-vertex)
+- Dissolve / shader VFX (per-pixel in fragment shader)
+
+These should use inline WGSL noise functions. The algorithms are the same (Perlin, Simplex, FBM) but execute on the GPU's massively parallel architecture.
+
+### Hybrid Pattern
+
+The recommended bridge: use this crate to **bake noise into textures** at startup or per-chunk, then sample those textures in GPU shaders via standard texture reads. The `pack_scalar_layers_rgba()` function packs up to 4 float grids into RGBA channels for exactly this workflow.
