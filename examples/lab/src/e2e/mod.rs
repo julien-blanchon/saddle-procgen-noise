@@ -73,6 +73,48 @@ fn remember_signature() -> Action {
     }))
 }
 
+fn wait_for_preview_ready_for(preset: AsyncPreset) -> Action {
+    Action::WaitUntil {
+        label: format!("wait for {preset:?} preview ready"),
+        condition: Box::new(move |world| {
+            let diagnostics = world.resource::<LabDiagnostics>();
+            diagnostics.active_preset == preset
+                && diagnostics.preview_image_ready
+                && diagnostics.async_signature != 0
+        }),
+        max_frames: 240,
+    }
+}
+
+fn wait_for_signature_change(label: impl Into<String>) -> Action {
+    Action::WaitUntil {
+        label: label.into(),
+        condition: Box::new(|world| {
+            let before = world.resource::<BeforeRegenerationSignature>().0;
+            let diagnostics = world.resource::<LabDiagnostics>();
+            diagnostics.async_signature != 0
+                && diagnostics.async_signature != before
+                && !diagnostics.pending_request
+        }),
+        max_frames: 240,
+    }
+}
+
+fn wait_for_preset_signature_change(preset: AsyncPreset, label: impl Into<String>) -> Action {
+    Action::WaitUntil {
+        label: label.into(),
+        condition: Box::new(move |world| {
+            let before = world.resource::<BeforeRegenerationSignature>().0;
+            let diagnostics = world.resource::<LabDiagnostics>();
+            diagnostics.active_preset == preset
+                && diagnostics.preview_image_ready
+                && diagnostics.async_signature != 0
+                && diagnostics.async_signature != before
+        }),
+        max_frames: 240,
+    }
+}
+
 pub fn scenario_by_name(name: &str) -> Option<Scenario> {
     match name {
         "noise_smoke" => Some(noise_smoke()),
@@ -108,24 +150,13 @@ fn wait_for_view(view: LabView) -> Action {
     }
 }
 
-fn wait_for_preview_ready() -> Action {
-    Action::WaitUntil {
-        label: "wait for preview ready".into(),
-        condition: Box::new(|world| {
-            let diagnostics = world.resource::<LabDiagnostics>();
-            diagnostics.preview_image_ready && diagnostics.async_signature != 0
-        }),
-        max_frames: 240,
-    }
-}
-
 fn noise_smoke() -> Scenario {
     Scenario::builder("noise_smoke")
         .description(
             "Verify the async preview, comparison grid, and diagnostics resources all initialize.",
         )
         .then(Action::WaitFrames(30))
-        .then(wait_for_preview_ready())
+        .then(wait_for_preview_ready_for(AsyncPreset::Perlin))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "comparison grid exists",
             |diagnostics| diagnostics.compare_panel_count >= 6,
@@ -195,7 +226,7 @@ fn noise_preset_variety() -> Scenario {
         .description("Switch through Perlin, Simplex, Value and Worley presets; assert each yields a unique async signature.")
         .then(set_view_action(LabView::AsyncPreview))
         .then(wait_for_view(LabView::AsyncPreview))
-        .then(wait_for_preview_ready());
+        .then(wait_for_preview_ready_for(AsyncPreset::Perlin));
 
     // Collect signatures across four presets.
     let presets = [
@@ -209,17 +240,7 @@ fn noise_preset_variety() -> Scenario {
         builder = builder
             .then(remember_signature())
             .then(set_preset_action(preset))
-            .then(Action::WaitUntil {
-                label: format!("wait for {preset:?} signature"),
-                condition: Box::new(move |world| {
-                    let before = world.resource::<BeforeRegenerationSignature>().0;
-                    let diagnostics = world.resource::<LabDiagnostics>();
-                    diagnostics.active_preset == preset
-                        && diagnostics.async_signature != 0
-                        && diagnostics.async_signature != before
-                }),
-                max_frames: 240,
-            });
+            .then(wait_for_signature_change(format!("wait for {preset:?} signature")));
     }
 
     builder
@@ -246,7 +267,7 @@ fn noise_seed_mutation() -> Scenario {
         .then(wait_for_view(LabView::AsyncPreview))
         // Start from a known preset so the baseline is deterministic.
         .then(set_preset_action(AsyncPreset::Perlin))
-        .then(wait_for_preview_ready())
+        .then(wait_for_preview_ready_for(AsyncPreset::Perlin))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "initial preview is ready for Perlin",
             |diagnostics| diagnostics.preview_image_ready && diagnostics.async_signature != 0,
@@ -257,17 +278,7 @@ fn noise_seed_mutation() -> Scenario {
         // First regeneration.
         .then(remember_signature())
         .then(regenerate_action())
-        .then(Action::WaitUntil {
-            label: "wait for first re-seed".into(),
-            condition: Box::new(|world| {
-                let before = world.resource::<BeforeRegenerationSignature>().0;
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.async_signature != 0
-                    && diagnostics.async_signature != before
-                    && !diagnostics.pending_request
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_signature_change("wait for first re-seed"))
         .then(assertions::custom("signature changed after first regen", |world| {
             let before = world.resource::<BeforeRegenerationSignature>().0;
             world.resource::<LabDiagnostics>().async_signature != before
@@ -278,17 +289,7 @@ fn noise_seed_mutation() -> Scenario {
         // Second regeneration.
         .then(remember_signature())
         .then(regenerate_action())
-        .then(Action::WaitUntil {
-            label: "wait for second re-seed".into(),
-            condition: Box::new(|world| {
-                let before = world.resource::<BeforeRegenerationSignature>().0;
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.async_signature != 0
-                    && diagnostics.async_signature != before
-                    && !diagnostics.pending_request
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_signature_change("wait for second re-seed"))
         .then(assertions::custom("signature changed after second regen", |world| {
             let before = world.resource::<BeforeRegenerationSignature>().0;
             world.resource::<LabDiagnostics>().async_signature != before
@@ -299,17 +300,7 @@ fn noise_seed_mutation() -> Scenario {
         // Third regeneration.
         .then(remember_signature())
         .then(regenerate_action())
-        .then(Action::WaitUntil {
-            label: "wait for third re-seed".into(),
-            condition: Box::new(|world| {
-                let before = world.resource::<BeforeRegenerationSignature>().0;
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.async_signature != 0
-                    && diagnostics.async_signature != before
-                    && !diagnostics.pending_request
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_signature_change("wait for third re-seed"))
         .then(assertions::custom("signature changed after third regen", |world| {
             let before = world.resource::<BeforeRegenerationSignature>().0;
             world.resource::<LabDiagnostics>().async_signature != before
@@ -333,16 +324,7 @@ fn noise_fbm_recipe() -> Scenario {
         .then(set_view_action(LabView::AsyncPreview))
         .then(wait_for_view(LabView::AsyncPreview))
         .then(set_preset_action(AsyncPreset::Fbm))
-        .then(Action::WaitUntil {
-            label: "wait for FBM preview ready".into(),
-            condition: Box::new(|world| {
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.active_preset == AsyncPreset::Fbm
-                    && diagnostics.preview_image_ready
-                    && diagnostics.async_signature != 0
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_preview_ready_for(AsyncPreset::Fbm))
         .then(assertions::resource_satisfies::<
             saddle_procgen_noise::NoiseRuntimeDiagnostics,
         >("runtime recipe contains Fbm variant", |diagnostics| {
@@ -361,15 +343,7 @@ fn noise_fbm_recipe() -> Scenario {
 
         // Switch to Ridged and verify recipe string updates accordingly.
         .then(set_preset_action(AsyncPreset::Ridged))
-        .then(Action::WaitUntil {
-            label: "wait for Ridged preview ready".into(),
-            condition: Box::new(|world| {
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.active_preset == AsyncPreset::Ridged
-                    && diagnostics.async_signature != 0
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_preview_ready_for(AsyncPreset::Ridged))
         .then(assertions::resource_satisfies::<
             saddle_procgen_noise::NoiseRuntimeDiagnostics,
         >("runtime recipe updates to Ridged variant", |diagnostics| {
@@ -419,20 +393,13 @@ fn noise_async_regen() -> Scenario {
         .description("Regenerate the async preview with a different preset and assert the published signature changes.")
         .then(set_view_action(LabView::AsyncPreview))
         .then(wait_for_view(LabView::AsyncPreview))
-        .then(wait_for_preview_ready())
+        .then(wait_for_preview_ready_for(AsyncPreset::Perlin))
         .then(remember_signature())
         .then(set_preset_action(AsyncPreset::Warp))
-        .then(Action::WaitUntil {
-            label: "wait for warp preset preview".into(),
-            condition: Box::new(|world| {
-                let before = world.resource::<BeforeRegenerationSignature>().0;
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.active_preset == AsyncPreset::Warp
-                    && diagnostics.async_signature != 0
-                    && diagnostics.async_signature != before
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_preset_signature_change(
+            AsyncPreset::Warp,
+            "wait for warp preset preview",
+        ))
         .then(assertions::resource_satisfies::<saddle_procgen_noise::NoiseRuntimeDiagnostics>(
             "runtime recipe switched to warp",
             |diagnostics| diagnostics.active_recipe.contains("Warp("),
@@ -519,7 +486,7 @@ fn noise_keyboard_workflow() -> Scenario {
             frames: 1,
         })
         .then(wait_for_view(LabView::AsyncPreview))
-        .then(wait_for_preview_ready())
+        .then(wait_for_preview_ready_for(AsyncPreset::Perlin))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "async preview is ready again",
             |diagnostics| diagnostics.active_view == LabView::AsyncPreview && diagnostics.preview_image_ready,
@@ -529,18 +496,10 @@ fn noise_keyboard_workflow() -> Scenario {
             key: KeyCode::KeyU,
             frames: 1,
         })
-        .then(Action::WaitUntil {
-            label: "warp preset became active".into(),
-            condition: Box::new(|world| {
-                let before = world.resource::<BeforeRegenerationSignature>().0;
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.active_preset == AsyncPreset::Warp
-                    && diagnostics.preview_image_ready
-                    && diagnostics.async_signature != 0
-                    && diagnostics.async_signature != before
-            }),
-            max_frames: 240,
-        })
+        .then(wait_for_preset_signature_change(
+            AsyncPreset::Warp,
+            "warp preset became active",
+        ))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "warp preset is active",
             |diagnostics| diagnostics.active_preset == AsyncPreset::Warp && diagnostics.preview_image_ready,
